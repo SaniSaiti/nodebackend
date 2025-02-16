@@ -2,22 +2,52 @@ const express = require("express");
 const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 const pool = require("../db");
+const { authMiddleware, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
 
 // Registrierung
-router.post("/register", async(req, res) => {
-    const { name, email, password, role } = req.body;
+router.post("/register", authMiddleware, checkRole(["admin"]), async(req, res) => {
+    console.log('rqe.body', req.body);
+
+    const {
+        vorname,
+        nachname,
+        email,
+        telefonnummer,
+        geburtsdatum,
+        adresse,
+        wohnort,
+        staplerschein,
+        lehrfahrausweisGueltigkeit,
+        role,
+        fuehrerscheinKlasse,
+        czv,
+        czvGueltigkeit
+    } = req.body;
+
+    // Standardpasswort setzen, falls kein Passwort übergeben wurde.
+    const password = '123456'; // Das Standardpasswort
+    console.log('req.user.role ', req.user.role);
+
     try {
+        // Das Passwort hashen
         const hashedPassword = await bcrypt.hash(password, 10);
+
+        // Benutzer in der Datenbank speichern
         const newUser = await pool.query(
-            "INSERT INTO users (name, email, password, role) VALUES ($1, $2, $3, $4) RETURNING *", [name, email, hashedPassword, role]
+            "INSERT INTO users (vorname, nachname, email, telefonnummer, geburtsdatum, adresse, wohnort, staplerschein, lehrfahrausweisGueltigkeit, role, fuehrerscheinKlasse, czv, czvGueltigkeit, password) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14) RETURNING *", [
+                vorname, nachname, email, telefonnummer, geburtsdatum, adresse, wohnort,
+                staplerschein, lehrfahrausweisGueltigkeit, role, fuehrerscheinKlasse, czv, czvGueltigkeit, hashedPassword
+            ]
         );
-        res.json(newUser.rows[0]);
+
+        res.json(newUser.rows[0]); // Gibt den neu erstellten Benutzer zurück.
     } catch (error) {
         res.status(500).json({ error: error.message });
     }
 });
+
 
 // Login
 router.post("/login", async(req, res) => {
