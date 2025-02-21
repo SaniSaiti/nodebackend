@@ -1,6 +1,6 @@
 const express = require("express");
 const pool = require("../db");
-const { authMiddleware, checkRole } = require("../middleware/auth");
+const { authMiddleware, checkRole, checkOwnUser } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -59,6 +59,41 @@ router.put("/:id", authMiddleware, checkRole(["admin"]), async(req, res) => {
     }
 });
 
+
+// Geolocation user nur von dem eingelogten User updadaten 
+router.put("/:id/location", authMiddleware, checkOwnUser(), async(req, res) => {
+    console.log("Request Params:", req.params);
+    console.log("Request Body:", req.body);
+
+    const lastposition = req.body;
+    const userId = parseInt(req.params.id, 10); // Hier die ID aus den URL-Parametern
+
+    console.log(' userId:', userId);
+    console.log('lastposition ', lastposition);
+
+    try {
+        const result = await pool.query(
+            `UPDATE users
+            SET lastposition = $1
+            WHERE id = $2 RETURNING *`, [JSON.stringify(lastposition), userId]
+        );
+
+        res.json(result.rows[0]);
+    } catch (error) {
+        console.error("Update Fehler:", error);
+        res.status(500).json({ error: "Interner Serverfehler" });
+    }
+});
+
+// Geolocation von allen Users
+router.get("/locations", authMiddleware, async(req, res) => {
+    try {
+        const result = await pool.query("SELECT lastposition, id FROM users WHERE lastposition IS NOT NULL");
+        res.json(result.rows);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
+});
 
 // User löschen
 router.delete("/:id", authMiddleware, checkRole(["admin"]), async(req, res) => {
