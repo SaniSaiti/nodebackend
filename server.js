@@ -22,5 +22,8 @@ app.use("/api/worklogs", worklogRoutes);
 const vehicleRoutes = require("./routes/vehicles");
 app.use("/api/vehicles", vehicleRoutes);
 
+const vehicledamageRoutes = require("./routes/vehicledamage");
+app.use("/api/vehicledamage", vehicledamageRoutes);
+
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server läuft auf Port ${PORT}`));

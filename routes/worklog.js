@@ -1,6 +1,6 @@
 const express = require("express");
 const pool = require("../db");
-const { authMiddleware } = require("../middleware/auth");
+const { authMiddleware, checkRole } = require("../middleware/auth");
 
 const router = express.Router();
 
@@ -80,8 +80,50 @@ router.get("/:userId", authMiddleware, async(req, res) => {
     }
 });
 
+// PUT Route für Worklogs-Aktualisierung (nur Admin)
+router.put("/:id", authMiddleware, checkRole(["admin"]), async(req, res) => {
+    console.log("Request Body:", req.body);
+
+    const { user_id, entry_type, date_start, date_end, start_time, end_time, is_night_shift, id } = req.body;
+
+    try {
+        const result = await pool.query(
+            `UPDATE work_logs
+            SET user_id = $1, entry_type = $2, date_start = $3, date_end = $4, start_time = $5, end_time = $6, is_night_shift = $7, updated_at = NOW()
+            WHERE id = $8 RETURNING *`, [user_id, entry_type, date_start, date_end, start_time, end_time, is_night_shift, id]
+        );
+
+        if (result.rows.length > 0) {
+            res.json({ message: "Worklog erfolgreich aktualisiert", worklog: result.rows[0] });
+        } else {
+            res.status(404).json({ error: "Worklog nicht gefunden" });
+        }
+    } catch (error) {
+        console.error("Update Fehler:", error);
+        res.status(500).json({ error: "Interner Serverfehler" });
+    }
+});
 
 
+// DELETE Route für Worklogs (nur Admin)
+router.delete("/:id", authMiddleware, checkRole(["admin"]), async(req, res) => {
+    const worklogId = parseInt(req.params.id, 10);
+    console.log('worklogId', worklogId);
+
+
+    try {
+        const result = await pool.query("DELETE FROM work_logs WHERE id = $1 RETURNING *", [worklogId]);
+
+        if (result.rows.length > 0) {
+            res.json({ message: "Worklog erfolgreich gelöscht", worklog: result.rows[0] });
+        } else {
+            res.status(404).json({ error: "Worklog nicht gefunden" });
+        }
+    } catch (error) {
+        console.error("Löschfehler:", error);
+        res.status(500).json({ error: "Interner Serverfehler" });
+    }
+});
 
 
 module.exports = router;
