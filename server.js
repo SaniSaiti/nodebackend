@@ -13,6 +13,9 @@ app.get("/", (req, res) => {
 const authRoutes = require("./routes/auth");
 app.use("/api/auth", authRoutes);
 
+const calculateworktimeRoutes = require("./routes/calculateworktime");
+app.use("/api/calculateworktime", calculateworktimeRoutes);
+
 const userRoutes = require("./routes/users");
 app.use("/api/users", userRoutes);
 
